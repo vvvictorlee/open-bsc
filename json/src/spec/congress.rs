@@ -14,24 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Parlia params deserialization.
+//! Congress params deserialization.
 
 use std::num::NonZeroU64;
 
 /// Clique params deserialization.
 #[derive(Debug, PartialEq, Deserialize)]
-pub struct ParliaParams {
+pub struct CongressParams {
     /// Number of seconds between blocks to enforce
     pub period: Option<u64>,
     /// Epoch length to update validatorSet
     pub epoch: Option<NonZeroU64>,
 }
 
-/// Parlia engine deserialization.
+/// Congress engine deserialization.
 #[derive(Debug, PartialEq, Deserialize)]
-pub struct Parlia {
+pub struct Congress {
     /// CliqueEngine params
-    pub params: ParliaParams,
+    pub params: CongressParams,
 }
 
 #[cfg(test)]
@@ -48,7 +48,7 @@ mod tests {
 			}
 		}"#;
 
-        let deserialized: Parlia = serde_json::from_str(s).unwrap();
+        let deserialized: Congress = serde_json::from_str(s).unwrap();
         assert_eq!(deserialized.params.period, Some(5u64));
         assert_eq!(deserialized.params.epoch, NonZeroU64::new(30000));
     }

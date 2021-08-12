@@ -36,7 +36,7 @@ use vm::{ActionParams, ActionValue, CallType, EnvInfo, ParamsType};
 
 use builtin::Builtin;
 use engines::{
-    parlia::Parlia, AuthorityRound, BasicAuthority, Clique, EthEngine, InstantSeal,
+    congress::Congress, AuthorityRound, BasicAuthority, Clique, EthEngine, InstantSeal,
     InstantSealParams, NullEngine, DEFAULT_BLOCKHASH_CONTRACT,
 };
 use error::Error;
@@ -692,9 +692,9 @@ impl Spec {
                 AuthorityRound::new(authority_round.params.into(), machine)
                     .expect("Failed to start AuthorityRound consensus engine.")
             }
-            ethjson::spec::Engine::Parlia(parlia) => {
-                Parlia::new(parlia.params.into(), machine, chain_id)
-                    .expect("Failed to start parlia consensus engine.")
+            ethjson::spec::Engine::Congress(congress) => {
+                Congress::new(congress.params.into(), machine, chain_id)
+                    .expect("Failed to start congress consensus engine.")
             }
         };
 

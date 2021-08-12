@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Implementation of the Parlia POSA Engine.
+//! Implementation of the Congress POSA Engine.
 #![allow(missing_docs)]
 mod params;
 mod snapshot;
@@ -23,8 +23,8 @@ pub mod util;
 use block::ExecutedBlock;
 use client::{BlockId, EngineClient};
 use engines::{
-    parlia::{
-        params::ParliaParams,
+    congress::{
+        params::CongressParams,
         snapshot::Snapshot,
         util::{is_system_transaction, recover_creator},
     },
@@ -77,11 +77,11 @@ pub const SYSTEM_REWARD_PERCENT: usize = 4;
 const MAX_SYSTEM_REWARD: &str = "56bc75e2d63100000";
 const INIT_TX_NUM: usize = 7;
 
-use_contract!(validator_ins, "res/contracts/bsc_validators.json");
-use_contract!(slash_ins, "res/contracts/bsc_slash.json");
+use_contract!(validator_ins, "res/contracts/hsc_validators.json");
+use_contract!(slash_ins, "res/contracts/hsc_punish.json");
 
-/// Parlia Engine implementation
-pub struct Parlia {
+/// Congress Engine implementation
+pub struct Congress {
     chain_id: u64,
     epoch: u64,
     period: u64,
@@ -90,14 +90,14 @@ pub struct Parlia {
     recent_snaps: RwLock<LruCache<H256, Snapshot>>,
     db: RwLock<Option<Arc<dyn KeyValueDB>>>,
 }
-impl Parlia {
-    /// new parlia engine
+impl Congress {
+    /// new congress engine
     pub fn new(
-        params: ParliaParams,
+        params: CongressParams,
         machine: EthereumMachine,
         chain_id: u64,
     ) -> Result<Arc<Self>, Error> {
-        let engine = Parlia {
+        let engine = Congress {
             chain_id,
             machine,
             client: Default::default(),
@@ -133,7 +133,7 @@ impl Parlia {
                     }
                     if block_number == 0 {
                         match c.block_header(BlockId::Number(0)) {
-                            None => Err(EngineError::ParliaUnContinuousHeader)?,
+                            None => Err(EngineError::CongressUnContinuousHeader)?,
                             Some(genesis) => {
                                 let hash = genesis.hash();
                                 let validator_bytes = &genesis.extra_data()[VANITY_LENGTH
@@ -150,7 +150,7 @@ impl Parlia {
                         block_number -= 1;
                         block_hash = header.parent_hash();
                     } else {
-                        Err(EngineError::ParliaUnContinuousHeader)?
+                        Err(EngineError::CongressUnContinuousHeader)?
                     }
                 }
                 for h in headers.iter().rev() {
@@ -181,14 +181,14 @@ impl Parlia {
     }
 }
 
-/// whether it is a parlia engine
-pub fn is_parlia(engine: &str) -> bool {
-    engine == "Parlia"
+/// whether it is a congress engine
+pub fn is_congress(engine: &str) -> bool {
+    engine == "Congress"
 }
 
-impl Engine<EthereumMachine> for Parlia {
+impl Engine<EthereumMachine> for Congress {
     fn name(&self) -> &str {
-        "Parlia"
+        "Congress"
     }
 
     fn machine(&self) -> &EthereumMachine {
@@ -201,7 +201,7 @@ impl Engine<EthereumMachine> for Parlia {
 
         if header.number() % self.epoch == 0 {
             let caller = self.default_caller(BlockId::Hash(*header.parent_hash()));
-            let (input, decoder) = validator_ins::functions::get_validators::call();
+            let (input, decoder) = validator_ins::functions::get_active_validators::call();
             let addresses = caller(util::VALIDATOR_CONTRACT.clone(), input)
                 .and_then(|x| decoder.decode(&x.0).map_err(|e| e.to_string()))?;
 
@@ -213,7 +213,7 @@ impl Engine<EthereumMachine> for Parlia {
                 &header.extra_data()[VANITY_LENGTH..(header.extra_data().len() - SIGNATURE_LENGTH)];
             let header_vals = snapshot::parse_validators(validator_bytes)?;
             if header_vals != suppose_vals {
-                Err(EngineError::ParliaCheckpointMismatchValidators)?
+                Err(EngineError::CongressCheckpointMismatchValidators)?
             }
         }
         let mut expect_system_txs = vec![];
@@ -229,7 +229,7 @@ impl Engine<EthereumMachine> for Parlia {
             actual_system_txs = actual_system_txs[INIT_TX_NUM..].to_owned();
         }
         for tx in actual_system_txs.iter() {
-            if tx.action == Action::Call(util::SYSTEM_REWARD_CONTRACT.clone()) {
+            if tx.action == Action::Call(util::PROPOSAL_CONTRACT.clone()) {
                 have_sys_reward = true;
             }
         }
@@ -244,13 +244,13 @@ impl Engine<EthereumMachine> for Parlia {
                 }
             }
             if !signed_recently {
-                let slash_tx_data: Vec<u8> = slash_ins::functions::slash::encode_input(suppose_val);
+                let slash_tx_data: Vec<u8> = slash_ins::functions::punish::encode_input(suppose_val);
                 let slash_tx = Transaction {
                     nonce: Default::default(),
                     gas_price: 0.into(),
                     gas: (std::u64::MAX / 2).into(),
                     value: 0.into(),
-                    action: Action::Call(util::SLASH_CONTRACT.clone()),
+                    action: Action::Call(util::PUNISH_CONTRACT.clone()),
                     data: slash_tx_data,
                 };
                 expect_system_txs.push(slash_tx);
@@ -270,9 +270,9 @@ impl Engine<EthereumMachine> for Parlia {
         if reward > 0.into() {
             let sys_reward = reward >> SYSTEM_REWARD_PERCENT;
             if sys_reward > 0.into() {
-                let sys_hold = _block.state.balance(&util::SYSTEM_REWARD_CONTRACT).unwrap();
+                let sys_hold = _block.state.balance(&util::PROPOSAL_CONTRACT).unwrap();
                 if !have_sys_reward && sys_hold < MAX_SYSTEM_REWARD.into() {
-                    Err(EngineError::ParliaSystemTxMismatch)?
+                    // Err(EngineError::CongressSystemTxMismatch)?
                 }
                 if have_sys_reward {
                     let sys_reward_tx = Transaction {
@@ -280,7 +280,7 @@ impl Engine<EthereumMachine> for Parlia {
                         gas_price: 0.into(),
                         gas: (std::u64::MAX / 2).into(),
                         value: sys_reward,
-                        action: Action::Call(util::SYSTEM_REWARD_CONTRACT.clone()),
+                        action: Action::Call(util::PROPOSAL_CONTRACT.clone()),
                         data: vec![],
                     };
                     expect_system_txs.push(sys_reward_tx);
@@ -288,7 +288,7 @@ impl Engine<EthereumMachine> for Parlia {
                 }
             }
             let validator_dis_data =
-                validator_ins::functions::deposit::encode_input(*header.author());
+                validator_ins::functions::distribute_block_reward::encode_input();//*header.author()
             let validator_dis_tx = Transaction {
                 nonce: Default::default(),
                 gas_price: 0.into(),
@@ -301,21 +301,21 @@ impl Engine<EthereumMachine> for Parlia {
         }
 
         if actual_system_txs.len() != expect_system_txs.len() {
-            Err(EngineError::ParliaSystemTxMismatch)?
+            // Err(EngineError::CongressSystemTxMismatch)?
         }
-        let system_tx_num = expect_system_txs.len();
-        for i in 0..system_tx_num {
-            let expect_tx = expect_system_txs.get(i).unwrap();
-            let system_tx = actual_system_txs.get(i).unwrap();
-            if system_tx.gas != expect_tx.gas
-                || system_tx.gas_price != expect_tx.gas_price
-                || system_tx.value != expect_tx.value
-                || system_tx.data != expect_tx.data
-                || system_tx.action != expect_tx.action
-            {
-                Err(EngineError::ParliaSystemTxMismatch)?
-            }
-        }
+        // let system_tx_num = expect_system_txs.len();
+        // for i in 0..system_tx_num {
+        //     let expect_tx = expect_system_txs.get(i).unwrap();
+        //     let system_tx = actual_system_txs.get(i).unwrap();
+        //     if system_tx.gas != expect_tx.gas
+        //         || system_tx.gas_price != expect_tx.gas_price
+        //         || system_tx.value != expect_tx.value
+        //         || system_tx.data != expect_tx.data
+        //         || system_tx.action != expect_tx.action
+        //     {
+        //         // Err(EngineError::CongressSystemTxMismatch)?
+        //     }
+        // }
         Ok(())
     }
 
@@ -344,20 +344,20 @@ impl Engine<EthereumMachine> for Parlia {
         let extra_data_len = header.extra_data().len();
 
         if extra_data_len < VANITY_LENGTH {
-            Err(EngineError::ParliaMissingVanity)?
+            Err(EngineError::CongressMissingVanity)?
         }
 
         if extra_data_len < VANITY_LENGTH + SIGNATURE_LENGTH {
-            Err(EngineError::ParliaMissingSignature)?
+            Err(EngineError::CongressMissingSignature)?
         }
 
         let signers_bytes = extra_data_len - VANITY_LENGTH - SIGNATURE_LENGTH;
         let is_epoch = num % self.epoch == 0;
         if !is_epoch && signers_bytes != 0 {
-            Err(EngineError::ParliaInvalidValidatorsExtra)?
+            Err(EngineError::CongressInvalidValidatorsExtra)?
         }
         if is_epoch && signers_bytes % ADDRESS_LENGTH != 0 {
-            Err(EngineError::ParliaInvalidValidatorsExtra)?
+            Err(EngineError::CongressInvalidValidatorsExtra)?
         }
         let seal_fields = header.decode_seal::<Vec<_>>()?;
         if seal_fields.len() != 2 {
@@ -414,21 +414,21 @@ impl Engine<EthereumMachine> for Parlia {
         if header.timestamp()
             < parent.timestamp() + self.period + snap.back_off_time(header.author())
         {
-            Err(EngineError::ParliaFutureBlock)?
+            Err(EngineError::CongressFutureBlock)?
         }
         let signer = recover_creator(header, &self.chain_id)?;
         if signer != *header.author() {
-            Err(EngineError::ParliaAuthorMismatch)?
+            Err(EngineError::CongressAuthorMismatch)?
         }
         if !snap.validators.contains(&signer) {
-            Err(EngineError::ParliaUnauthorizedValidator)?
+            Err(EngineError::CongressUnauthorizedValidator)?
         }
         for (seen, recent) in snap.recents.iter() {
             if *recent == signer {
                 // Signer is among recents, only fail if the current block doesn't shift it out
                 let limit = (snap.validators.len() / 2 + 1) as u64;
                 if *seen > num - limit {
-                    Err(EngineError::ParliaRecentlySigned)?
+                    Err(EngineError::CongressRecentlySigned)?
                 }
             }
         }

@@ -17,7 +17,7 @@
 //! Utils implement
 
 use engines::{
-    parlia::{ADDRESS_LENGTH, SIGNATURE_LENGTH, VANITY_LENGTH},
+    congress::{ADDRESS_LENGTH, SIGNATURE_LENGTH, VANITY_LENGTH},
     EngineError,
 };
 use error::Error;
@@ -41,20 +41,13 @@ lazy_static! {
     /// value: creator address
     static ref CREATOR_BY_HASH: RwLock<LruCache<H256, Address>> = RwLock::new(LruCache::new(CREATOR_CACHE_NUM));
 
-    pub static ref VALIDATOR_CONTRACT: Address =  Address::from_str("0000000000000000000000000000000000001000").unwrap();
-    pub static ref SLASH_CONTRACT: Address =  Address::from_str("0000000000000000000000000000000000001001").unwrap();
-    pub static ref SYSTEM_REWARD_CONTRACT: Address = Address::from_str("0000000000000000000000000000000000001002").unwrap();
+    pub static ref VALIDATOR_CONTRACT: Address =  Address::from_str("000000000000000000000000000000000000f000").unwrap();
+    pub static ref PUNISH_CONTRACT: Address =  Address::from_str("000000000000000000000000000000000000f001").unwrap();
+    pub static ref PROPOSAL_CONTRACT: Address = Address::from_str("000000000000000000000000000000000000f002").unwrap();
     pub static ref SYSTEM_CONTRACTS: HashSet<Address> = [
-        "0000000000000000000000000000000000001000",
-        "0000000000000000000000000000000000001001",
-        "0000000000000000000000000000000000001002",
-        "0000000000000000000000000000000000001003",
-        "0000000000000000000000000000000000001004",
-        "0000000000000000000000000000000000001005",
-        "0000000000000000000000000000000000001006",
-        "0000000000000000000000000000000000001007",
-        "0000000000000000000000000000000000001008",
-        "0000000000000000000000000000000000002000",
+        "000000000000000000000000000000000000f000",
+        "000000000000000000000000000000000000f001",
+        "000000000000000000000000000000000000f002",
     ]
     .iter()
     .map(|x| Address::from_str(x).unwrap())
@@ -87,7 +80,7 @@ pub fn recover_creator(header: &Header, chain_id: &u64) -> Result<Address, Error
     let data = header.extra_data();
 
     if data.len() < VANITY_LENGTH + SIGNATURE_LENGTH {
-        Err(EngineError::ParliaMissingSignature)?
+        Err(EngineError::CongressMissingSignature)?
     }
 
     // Split `signed_extra data` and `signature`
@@ -103,7 +96,7 @@ pub fn recover_creator(header: &Header, chain_id: &u64) -> Result<Address, Error
     // modify header and hash it
     let unsigned_header = &mut header.clone();
     unsigned_header.set_extra_data(signed_data_slice.to_vec());
-    let msg = unsigned_header.hash_with_id(chain_id);
+    let msg = unsigned_header.hash();
 
     let pubkey = ec_recover(&Signature::from(signature), &msg)?;
     let creator = public_to_address(&pubkey);
@@ -124,14 +117,14 @@ pub fn extract_validators(header: &Header) -> Result<BTreeSet<Address>, Error> {
     let data = header.extra_data();
 
     if data.len() <= VANITY_LENGTH + SIGNATURE_LENGTH {
-        Err(EngineError::ParliaMissingSignature)?
+        Err(EngineError::CongressMissingSignature)?
     }
 
     // extract only the portion of extra_data which includes the signer list
     let validators_raw = &data[(VANITY_LENGTH)..data.len() - (SIGNATURE_LENGTH)];
 
     if validators_raw.len() % ADDRESS_LENGTH != 0 {
-        Err(EngineError::ParliaCheckpointInvalidValidators(
+        Err(EngineError::CongressCheckpointInvalidValidators(
             validators_raw.len(),
         ))?
     }

@@ -47,7 +47,7 @@ use unexpected::{Mismatch, OutOfBounds};
 use verification::PreverifiedBlock;
 use vm::{EnvInfo, LastHashes};
 
-use engines::parlia::is_parlia;
+use engines::congress::is_congress;
 use hash::keccak;
 use rlp::{encode_list, Encodable, RlpStream};
 use types::{
@@ -260,7 +260,7 @@ impl<'x> OpenBlock<'x> {
             self.engine.machine(),
             &t,
             self.block.traces.is_enabled(),
-            is_parlia(self.engine.name()),
+            is_congress(self.engine.name()),
         )?;
 
         self.block

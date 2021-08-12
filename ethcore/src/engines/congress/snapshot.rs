@@ -17,7 +17,7 @@
 use client::{BlockId, EngineClient};
 use db;
 use engines::{
-    parlia::{util::recover_creator, ADDRESS_LENGTH, SIGNATURE_LENGTH, VANITY_LENGTH},
+    congress::{util::recover_creator, ADDRESS_LENGTH, SIGNATURE_LENGTH, VANITY_LENGTH},
     EngineError,
 };
 use error::Error;
@@ -54,7 +54,7 @@ impl Snapshot {
     }
 
     pub fn load(db_ins: Arc<dyn KeyValueDB>, hash: &H256) -> Option<Snapshot> {
-        if let Ok(b) = db_ins.get(db::COL_PARLIA_SNAPSHOT, hash) {
+        if let Ok(b) = db_ins.get(db::COL_CONGRESS_SNAPSHOT, hash) {
             if b.is_none() {
                 return None;
             }
@@ -70,7 +70,7 @@ impl Snapshot {
     pub fn store(&self, db_ins: Arc<dyn KeyValueDB>) {
         let value = serde_json::to_vec(&self).unwrap();
         let mut tx = db_ins.transaction();
-        tx.put(db::COL_PARLIA_SNAPSHOT, &self.hash, &value);
+        tx.put(db::COL_CONGRESS_SNAPSHOT, &self.hash, &value);
         db_ins.write(tx).unwrap();
     }
 
@@ -91,7 +91,7 @@ impl Snapshot {
     ) -> Result<Snapshot, Error> {
         let num = header.number();
         if self.number + 1 != num {
-            Err(EngineError::ParliaUnContinuousHeader)?
+            Err(EngineError::CongressUnContinuousHeader)?
         }
         let creator = recover_creator(header, chain_id)?;
         let mut snap = self.clone();
@@ -102,11 +102,11 @@ impl Snapshot {
             snap.recents.remove(&(num - limit));
         }
         if !snap.validators.contains(&creator) {
-            Err(EngineError::ParliaUnauthorizedValidator)?
+            Err(EngineError::CongressUnauthorizedValidator)?
         }
         for (_, recent) in snap.recents.iter() {
             if *recent == creator {
-                Err(EngineError::ParliaRecentlySigned)?
+                Err(EngineError::CongressRecentlySigned)?
             }
         }
         snap.recents.insert(num, creator);
@@ -162,7 +162,7 @@ fn find_ancient_header(
     for _ in 0..ite {
         let cur_header_op = client.block_header(BlockId::Hash(*cur_header.parent_hash()));
         if cur_header_op.is_none() {
-            Err(EngineError::ParliaUnContinuousHeader)?
+            Err(EngineError::CongressUnContinuousHeader)?
         }
         cur_header = cur_header_op.unwrap().decode()?;
     }
@@ -171,7 +171,7 @@ fn find_ancient_header(
 
 pub fn parse_validators(validators_bytes: &[u8]) -> Result<BTreeSet<Address>, Error> {
     if validators_bytes.len() % ADDRESS_LENGTH != 0 {
-        Err(EngineError::ParliaInvalidValidatorBytes)?
+        Err(EngineError::CongressInvalidValidatorBytes)?
     }
     let n = validators_bytes.len() / ADDRESS_LENGTH;
     let mut validators = BTreeSet::new();

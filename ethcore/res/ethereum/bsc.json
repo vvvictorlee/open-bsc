@@ -2,7 +2,7 @@
 	"name": "BSC",
 	"dataDir": "bsc",
 	"engine": {
-		"parlia": {
+		"congress": {
 			"params": {
 				"period": 3,
 				"epoch": 200

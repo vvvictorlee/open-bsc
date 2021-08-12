@@ -19,7 +19,7 @@ use bytes::{Bytes, BytesRef};
 use crossbeam_utils::thread;
 use engines::{
     self,
-    parlia::{util, util::is_system_transaction},
+    congress::{util, util::is_system_transaction},
 };
 use ethereum_types::{Address, H256, U256, U512};
 use evm::{CallType, FinalizationResult, Finalize};
@@ -1087,7 +1087,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         &'a mut self,
         t: &SignedTransaction,
         options: TransactOptions<T, V>,
-        parlia_engine: bool,
+        congress_engine: bool,
     ) -> Result<Executed<T::Output, V::Output>, ExecutionError>
     where
         T: Tracer,
@@ -1099,7 +1099,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             options.output_from_init_contract,
             options.tracer,
             options.vm_tracer,
-            parlia_engine,
+            congress_engine,
         )
     }
 
@@ -1135,7 +1135,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         output_from_create: bool,
         mut tracer: T,
         mut vm_tracer: V,
-        parlia_engine: bool,
+        congress_engine: bool,
     ) -> Result<Executed<T::Output, V::Output>, ExecutionError>
     where
         T: Tracer,
@@ -1145,7 +1145,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         let nonce = self.state.nonce(&sender)?;
 
         let schedule = self.schedule;
-        let base_gas_required = if parlia_engine && is_system_transaction(&t, &self.info.author) {
+        let base_gas_required = if congress_engine && is_system_transaction(&t, &self.info.author) {
             U256::from(0)
         } else {
             U256::from(t.gas_required(&schedule))
@@ -1177,7 +1177,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         }
 
         // validate if transaction fits into given block
-        if !parlia_engine || !util::is_system_transaction(t, &self.info.author) {
+        if !congress_engine || !util::is_system_transaction(t, &self.info.author) {
             if self.info.gas_used + t.gas > self.info.gas_limit {
                 return Err(ExecutionError::BlockGasLimitReached {
                     gas_limit: self.info.gas_limit,
@@ -1195,7 +1195,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         let mut substate = Substate::new();
 
         // force create system account
-        if parlia_engine && util::is_system_transaction(t, &self.info.author) {
+        if congress_engine && util::is_system_transaction(t, &self.info.author) {
             let system_balance = self.state.balance(&engines::SYSTEM_ACCOUNT)?;
             if !system_balance.is_zero() {
                 self.state
@@ -1289,7 +1289,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             output,
             tracer.drain(),
             vm_tracer.drain(),
-            parlia_engine,
+            congress_engine,
         )?)
     }
 
@@ -1538,7 +1538,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         output: Bytes,
         trace: Vec<T>,
         vm_trace: Option<V>,
-        parlia_engine: bool,
+        congress_engine: bool,
     ) -> Result<Executed<T, V>, ExecutionError> {
         let schedule = self.schedule;
 
@@ -1560,7 +1560,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         };
         let mut refunded = cmp::min(refunds_bound, (t.gas - gas_left_prerefund) >> 1);
 
-        if parlia_engine && is_system_transaction(&t, &self.info.author) {
+        if congress_engine && is_system_transaction(&t, &self.info.author) {
             refunded = 0.into();
         }
         let gas_left = gas_left_prerefund + refunded;
@@ -1591,7 +1591,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             fees_value,
             &self.info.author
         );
-        let reward_receiver = if parlia_engine {
+        let reward_receiver = if congress_engine {
             &engines::SYSTEM_ACCOUNT
         } else {
             &self.info.author

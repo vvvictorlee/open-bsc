@@ -24,7 +24,7 @@ mod null_engine;
 mod validator_set;
 
 pub mod block_reward;
-pub mod parlia;
+pub mod congress;
 pub mod signer;
 
 pub use self::{
@@ -125,30 +125,30 @@ pub enum EngineError {
     /// The signer signed a block to recently
     CliqueTooRecentlySigned(Address),
     /// Missing signature
-    ParliaMissingSignature,
+    CongressMissingSignature,
     /// Missing vanity data
-    ParliaMissingVanity,
+    CongressMissingVanity,
     /// The extra of header is invalid
-    ParliaInvalidValidatorsExtra,
+    CongressInvalidValidatorsExtra,
     /// List of signers is invalid
-    ParliaCheckpointInvalidValidators(usize),
+    CongressCheckpointInvalidValidators(usize),
     /// Missing validator bytes on epoch block header
-    ParliaCheckpointMismatchValidators,
+    CongressCheckpointMismatchValidators,
     /// Header is not continuous
-    ParliaUnContinuousHeader,
-    /// ParliaUnauthorizedValidator is returned if a header is signed by a non-authorized entity.
-    ParliaUnauthorizedValidator,
-    /// ParliaRecentlySigned is returned if a header is signed by an authorized entity
+    CongressUnContinuousHeader,
+    /// CongressUnauthorizedValidator is returned if a header is signed by a non-authorized entity.
+    CongressUnauthorizedValidator,
+    /// CongressRecentlySigned is returned if a header is signed by an authorized entity
     /// that already signed a header recently, thus is temporarily not allowed to.
-    ParliaRecentlySigned,
+    CongressRecentlySigned,
     /// The signer of header is different from author
-    ParliaAuthorMismatch,
+    CongressAuthorMismatch,
     /// The validator bytes is not match with state
-    ParliaInvalidValidatorBytes,
+    CongressInvalidValidatorBytes,
     /// System tx mismatch
-    ParliaSystemTxMismatch,
+    CongressSystemTxMismatch,
     /// validator seal block too early
-    ParliaFutureBlock,
+    CongressFutureBlock,
     /// Custom
     Custom(String),
 }
@@ -165,24 +165,24 @@ impl fmt::Display for EngineError {
 															it needs to be bigger than zero and a divisible by 20",
                 len
             ),
-            ParliaMissingSignature => format!("Extra data is missing signature"),
-            ParliaCheckpointInvalidValidators(len) => format!(
+            CongressMissingSignature => format!("Extra data is missing signature"),
+            CongressCheckpointInvalidValidators(len) => format!(
                 "Checkpoint block list was of length: {} of checkpoint but
 															it needs to be bigger than zero and a divisible by 20",
                 len
             ),
-            ParliaUnContinuousHeader => format!("Can not find parent header"),
-            ParliaUnauthorizedValidator => format!("Unauthorized validator"),
-            ParliaRecentlySigned => format!("Invalid ValidatorBytes"),
-            ParliaInvalidValidatorBytes => format!("Validator recent signed"),
+            CongressUnContinuousHeader => format!("Can not find parent header"),
+            CongressUnauthorizedValidator => format!("Unauthorized validator"),
+            CongressRecentlySigned => format!("Invalid ValidatorBytes"),
+            CongressInvalidValidatorBytes => format!("Validator recent signed"),
 
-            ParliaMissingVanity => format!("Missing vanity"),
-            ParliaInvalidValidatorsExtra => format!("Invalid Validators Extra"),
-            ParliaCheckpointMismatchValidators => format!("Checkpoint mismatch validators"),
+            CongressMissingVanity => format!("Missing vanity"),
+            CongressInvalidValidatorsExtra => format!("Invalid Validators Extra"),
+            CongressCheckpointMismatchValidators => format!("Checkpoint mismatch validators"),
 
-            ParliaAuthorMismatch => format!("Author mismatch"),
-            ParliaSystemTxMismatch => format!("SystemTx mismatch"),
-            ParliaFutureBlock => format!("Receiving future block"),
+            CongressAuthorMismatch => format!("Author mismatch"),
+            CongressSystemTxMismatch => format!("SystemTx mismatch"),
+            CongressFutureBlock => format!("Receiving future block"),
 
             CliqueCheckpointNoSigner => format!("Checkpoint block list of signers was empty"),
             CliqueInvalidNonce(ref mis) => format!(
@@ -512,7 +512,7 @@ pub trait Engine<M: Machine>: Sync + Send {
     /// Add Client which can be used for sealing, potentially querying the state and sending messages.
     fn register_client(&self, _client: Weak<M::EngineClient>) {}
 
-    /// Add db if needed. Only for parlia so far.
+    /// Add db if needed. Only for congress so far.
     fn register_db(&self, _db: Arc<dyn KeyValueDB>) {}
 
     /// Trigger next step of the consensus engine.

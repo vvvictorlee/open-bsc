@@ -16,7 +16,7 @@
 
 //! Engine deserialization.
 
-use super::{AuthorityRound, BasicAuthority, Clique, Ethash, InstantSeal, NullEngine, Parlia};
+use super::{AuthorityRound, BasicAuthority, Clique, Ethash, InstantSeal, NullEngine, Congress};
 
 /// Engine deserialization.
 #[derive(Debug, PartialEq, Deserialize)]
@@ -36,8 +36,8 @@ pub enum Engine {
     AuthorityRound(AuthorityRound),
     /// Clique engine.
     Clique(Clique),
-    ///Parlia engine.
-    Parlia(Parlia),
+    ///Congress engine.
+    Congress(Congress),
 }
 
 #[cfg(test)]

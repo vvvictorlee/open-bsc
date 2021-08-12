@@ -99,7 +99,7 @@ use vm::Schedule;
 // re-export
 pub use blockchain::CacheSize as BlockChainCacheSize;
 use db::{keys::BlockDetails, Readable, Writable};
-use engines::parlia::is_parlia;
+use engines::congress::is_congress;
 pub use types::{block_status::BlockStatus, blockchain_info::BlockChainInfo};
 pub use verification::QueueInfo as BlockQueueInfo;
 
@@ -740,7 +740,7 @@ impl Importer {
                             let machine = self.engine.machine();
                             let schedule = machine.schedule(env_info.number);
                             let res = Executive::new(&mut state, &env_info, &machine, &schedule)
-                                .transact(&transaction, options, is_parlia(self.engine.name()));
+                                .transact(&transaction, options, is_congress(self.engine.name()));
 
                             let res = match res {
                                 Err(e) => {

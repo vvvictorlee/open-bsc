@@ -14,26 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Parlia specific parameters.
+//! Congress specific parameters.
 
 use ethjson;
 
-/// `Parlia` params.
-pub struct ParliaParams {
+/// `Congress` params.
+pub struct CongressParams {
     /// Number of seconds between blocks to enforce
     pub period: u64,
     /// Epoch length to update validatorSet
     pub epoch: u64,
 }
 
-impl From<ethjson::spec::ParliaParams> for ParliaParams {
-    fn from(p: ethjson::spec::ParliaParams) -> Self {
+impl From<ethjson::spec::CongressParams> for CongressParams {
+    fn from(p: ethjson::spec::CongressParams) -> Self {
         let period = p.period.map_or_else(|| 30000 as u64, Into::into);
         let epoch = p.epoch.map_or_else(|| 15 as u64, Into::into);
 
         assert!(epoch > 0);
         assert!(period > 0);
 
-        ParliaParams { period, epoch }
+        CongressParams { period, epoch }
     }
 }

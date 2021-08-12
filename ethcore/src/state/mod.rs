@@ -910,7 +910,7 @@ impl<B: Backend> State<B> {
         machine: &Machine,
         t: &SignedTransaction,
         tracing: bool,
-        parlia_engine: bool,
+        congress_engine: bool,
     ) -> ApplyResult<FlatTrace, VMTrace> {
         if tracing {
             let options = TransactOptions::with_tracing();
@@ -920,7 +920,7 @@ impl<B: Backend> State<B> {
                 t,
                 options.tracer,
                 options.vm_tracer,
-                parlia_engine,
+                congress_engine,
             )
         } else {
             let options = TransactOptions::with_no_tracing();
@@ -930,7 +930,7 @@ impl<B: Backend> State<B> {
                 t,
                 options.tracer,
                 options.vm_tracer,
-                parlia_engine,
+                congress_engine,
             )
         }
     }
@@ -944,14 +944,14 @@ impl<B: Backend> State<B> {
         t: &SignedTransaction,
         tracer: T,
         vm_tracer: V,
-        parlia_engine: bool,
+        congress_engine: bool,
     ) -> ApplyResult<T::Output, V::Output>
     where
         T: trace::Tracer,
         V: trace::VMTracer,
     {
         let options = TransactOptions::new(tracer, vm_tracer);
-        let e = self.execute(env_info, machine, t, options, false, parlia_engine)?;
+        let e = self.execute(env_info, machine, t, options, false, congress_engine)?;
         let params = machine.params();
 
         let eip658 = env_info.number >= params.eip658_transition;
@@ -993,7 +993,7 @@ impl<B: Backend> State<B> {
         t: &SignedTransaction,
         options: TransactOptions<T, V>,
         virt: bool,
-        parlia_engine: bool,
+        congress_engine: bool,
     ) -> Result<Executed<T::Output, V::Output>, ExecutionError>
     where
         T: trace::Tracer,
@@ -1004,7 +1004,7 @@ impl<B: Backend> State<B> {
 
         match virt {
             true => e.transact_virtual(t, options),
-            false => e.transact(t, options, parlia_engine),
+            false => e.transact(t, options, congress_engine),
         }
     }
 
