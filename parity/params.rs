@@ -80,7 +80,7 @@ impl str::FromStr for SpecType {
             "ropsten" => SpecType::Ropsten,
             "kovan" => SpecType::Kovan,
             "rinkeby" => SpecType::Rinkeby,
-            "bsc" => SpecType::Bscmain,
+            "hsc" => SpecType::Hscmain,
             "goerli" | "görli" | "testnet" => SpecType::Goerli,
             "sokol" | "poasokol" => SpecType::Sokol,
             "dev" => SpecType::Dev,
@@ -109,7 +109,7 @@ impl fmt::Display for SpecType {
             SpecType::Goerli => "goerli",
             SpecType::Sokol => "sokol",
             SpecType::Dev => "dev",
-            SpecType::Bscmain => "bsc",
+            SpecType::Hscmain => "hsc",
             SpecType::Custom(ref custom) => custom,
         })
     }
