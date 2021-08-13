@@ -52,7 +52,7 @@ pub enum SpecType {
     Goerli,
     Sokol,
     Dev,
-    Bscmain,
+    Hscmain,
     Custom(String),
 }
 
@@ -134,7 +134,7 @@ impl SpecType {
             SpecType::Rinkeby => Ok(ethereum::new_rinkeby(params)),
             SpecType::Goerli => Ok(ethereum::new_goerli(params)),
             SpecType::Sokol => Ok(ethereum::new_sokol(params)),
-            SpecType::Bscmain => Ok(ethereum::new_hsc(params)),
+            SpecType::Hscmain => Ok(ethereum::new_hsc(params)),
             SpecType::Dev => Ok(Spec::new_instant()),
             SpecType::Custom(ref filename) => {
                 let file = fs::File::open(filename).map_err(|e| {
