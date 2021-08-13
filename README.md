@@ -1,5 +1,9 @@
 # OpenEthereum
 
+```
+RUST_LOG="debug" RUST_BACKTRACE=1 ./target/debug/openethereum --config ./hsc.toml
+```
+
 Fast and feature-rich multi-network Ethereum client.
 
 [» Download the latest release «](https://github.com/openethereum/openethereum/releases/latest)
